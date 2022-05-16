@@ -1,0 +1,43 @@
+#!/bin/bash
+
+TEMPLATE=$HOME/.config/tex/document.tex
+ACTION=$1
+DOCUMENT=$2
+[ -z $ACTION ] && ACTION="build"
+[ -z $DOCUMENT ] && DOCUMENT="document.tex"
+OUTPUT=${DOCUMENT%.*}.pdf
+
+if [ "$ACTION" == "new" ]; then
+    if [ ! -f $DOCUMENT ]; then
+        echo "Creating document template in '$DOCUMENT'"
+        cp $TEMPLATE $DOCUMENT
+        doc edit $DOCUMENT
+    else
+        echo "The document '$DOCUMENT' already exist, cancelling..."
+    fi
+fi
+
+[ ! -f $DOCUMENT ] && \
+    echo "Document '$DOCUMENT' was not found."
+
+[ "$ACTION" == "edit" ] && \
+    vim $DOCUMENT
+
+[ "$ACTION" == "build" ] && \
+    xelatex $DOCUMENT && \
+    rm *.aux *.log && \
+    xdotool search --class mupdf key --window %@ r
+
+[ "$ACTION" == "clean" ] && \
+    rm *.aux *.log *.pdf
+
+if [ "$ACTION" == "view" ]; then
+    mupdf $OUTPUT &
+fi
+
+if [ "$ACTION" == "watch" ]; then
+    doc build $DOCUMENT
+    mupdf $OUTPUT &
+    while true; do inotifywait $DOCUMENT && doc build $DOCUMENT; done
+fi
+
